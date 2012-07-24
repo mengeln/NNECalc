@@ -1,4 +1,4 @@
 NNECalc
 =======
 
-NNE Modelling Calculator
+NNE Modeling Calculator
