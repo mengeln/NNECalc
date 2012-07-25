@@ -3,12 +3,25 @@ testdata <- read.csv("tblChemCanopyDepthLatitude.csv")
 
 
 ###Check for outliers/bad data###
+
 outliercheck <- function(data, columns){
+  Result <- vector()
+  AnalyteName <- vector()
+  SampleID <- vector()
+  ###Calculate z scores for all observations in selected columns###
   for(j in columns){
+    cmean <- .colMeans(data[, j], m=length(data[, j]), n=1, na.rm=T)
+    csd <- sd(data[, j], na.rm=T)
     problems <- which(sapply(1:length(data[, j]), function(i){
-      (data[i, j]-mean(data[, j], na.rm=T))/sd(data[, j], na.rm=T)})>3)
-    print(data[problems, c(1, j)])
-    }
+      (data[i, j]-cmean)/csd})>3)
+    ###Concatenate the results from each loop together###
+    SampleID <- c(SampleID, data[problems, 2])
+    Result <- c(Result, data[problems, j])
+    AnalyteName <- c(AnalyteName, rep(colnames(data)[j], length(data[problems, j])))
+  }
+  ###Bind columns together## 
+  
+  return(cbind(SampleID, AnalyteName, Result))
 }
 
 outliercolumns <- c(3:8, 11, 13, 14)
