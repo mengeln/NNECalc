@@ -54,6 +54,14 @@ SolarRadiation <- function (data) {
 
 testdata$SolarRadiation <- SolarRadiation(testdata)
 
+###Calculate Light Factor
+
+LightFactor <- function(data){
+  1 - data$fraction * (1 - (1 - data$CanopyClosure / 100) ^ 2) ^ 0.5
+}
+
+testdata$LightFactor <- LightFactor(testdata)
+
 ###Standard Qual2k Method###
 
 MaxAlgaeDensity_standardQual2k <- function(data){
@@ -66,7 +74,7 @@ MaxAlgaeDensity_standardQual2k <- function(data){
   Phi_NB <- sapply(1:length(Nitrogen), function(i){min(c(N[i], P[i]), na.rm=T)})
   
   ###Define Phi_lb###
-  numerator <- data$SolarRadiation * parameters["lightfactor"] * exp(-1 * 
+  numerator <- data$SolarRadiation * data$LightFactor * exp(-1 * 
     (parameters["Light_Half_Sat"]/100) * (data$Depth.cm./100))
   Phi_lb <- numerator/(numerator + parameters["Light_Half_Sat"])
   
@@ -104,7 +112,7 @@ MaxAlgaeDensity_revisedQual2k <- function(data){
   Phi_NB <- sapply(1:length(Nitrogen), function(i){min(c(N[i], P[i]), na.rm=T)})
   
   ###Define Phi_lb###
-  numerator <- data$SolarRadiation * parameters["lightfactor"] * exp(-1 * 
+  numerator <- data$SolarRadiation * data$LightFactor * exp(-1 * 
     (parameters["Light_Half_Sat"]/100) * (data$Depth.cm./100))
   Phi_lb <- numerator/(numerator + parameters["Light_Half_Sat"])
   
