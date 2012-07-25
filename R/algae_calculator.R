@@ -2,7 +2,9 @@
 testdata <- read.csv("tblChemCanopyDepthLatitude.csv")
 
 
-###Check for outliers/bad data###
+###Check for outliers/bad data### 
+
+#***SampleID MUST be in column 2***
 
 outliercheck <- function(data, columns){
   Result <- vector()
@@ -28,20 +30,22 @@ outliercolumns <- c(3:8, 11, 13, 14)
 
 outliercheck(testdata, outliercolumns)
 
-###Check for missing critical data###
+###Check for missing critical data### 
+
+#***SampleID MUST be in column 2***
 
 missingcheck <- function(data, columns){
   toRemove <- unlist(sapply(importantcolumns, function(i)which(is.na(data[[i]]))))
   if(length(toRemove)==0){print("No critical missing data")}else{
     print("The following samples are missing critical data")
-    unique(as.character(data[toRemove, "SampleID"]))
+    return(unique(as.character(data[toRemove, 2])))
     }
 }
 
 importantcolumns <- 3:8
 
 
-missingcheck(testdata, importantcolumns)
+missingcheck(cdata, importantcolumns)
   
 
 ###Define Parameters###
