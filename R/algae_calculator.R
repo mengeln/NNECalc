@@ -50,13 +50,13 @@ missingcheck(cdata, importantcolumns)
 
 ###Define Parameters###
 
-load("parameters.RData")
+load("data/parameters.RData")
 
 ###Solar Radiation Estimation###
 
 
 SolarRadiation <- function (data) {
-  load("radiationTable.RData")
+  load("data/radiationTable.RData")
   data$Collection.Month <- as.character(data$Collection.Month)
   lowerBound <- sapply(1:length(data$SampleID), function(i){
     radiationTable[radiationTable$Month==floor(data$Latitude[i]), data$Collection.Month[i]]
