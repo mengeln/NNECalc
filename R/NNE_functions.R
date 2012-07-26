@@ -1,10 +1,3 @@
-###Read in the data###
-testdata <- read.csv("tblChemCanopyDepthLatitude.csv")
-
-
-###Check for outliers/bad data### 
-#***SampleID MUST be in column 2***
-
 outliercheck <- function(data, columns){
   Result <- vector()
   AnalyteName <- vector()
@@ -25,65 +18,32 @@ outliercheck <- function(data, columns){
   return(cbind(SampleID, AnalyteName, Result))
 }
 
-outliercolumns <- c(3:8, 11, 13, 14)
-
-outliercheck(testdata, outliercolumns)
-
-###Check for missing critical data### 
-#***SampleID MUST be in column 2***
-
-missingcheck <- function(data, columns){
-  toRemove <- unlist(sapply(importantcolumns, function(i)which(is.na(data[[i]]))))
-  if(length(toRemove)==0){print("No critical missing data")}else{
-    print("The following samples are missing critical data")
-    return(unique(as.character(data[toRemove, 2])))
-    }
-}
-
-importantcolumns <- 3:8
-
-
-missingcheck(cdata, importantcolumns)
-  
-
-###Define Parameters###
-
-load("data/parameters.RData")
-
-###Solar Radiation Estimation###
 
 
 SolarRadiation <- function (data) {
   load("data/radiationTable.RData")
   data$Collection.Month <- as.character(data$Collection.Month)
   lowerBound <- sapply(1:length(data$SampleID), function(i){
-    radiationTable[radiationTable$Month==floor(data$Latitude[i]), data$Collection.Month[i]]
-  })
+    radiationTable[radiationTable$Month==floor(data$Latitude[i]), data$DWC_Month[i]]
+  }).
   upperBound <- sapply(1:length(data$SampleID), function(i){
-    radiationTable[radiationTable$Month==ceiling(data$Latitude[i]), data$Collection.Month[i]]
+    radiationTable[radiationTable$Month==ceiling(data$Latitude[i]), data$DWC_Month[i]]
   })
   return(sapply(1:length(lowerBound), function(i){
     upperBound[i] + (upperBound[i]-lowerBound[i])*(data$Latitude[i]-floor(data$Latitude[i]))
   }))
 }
 
-testdata$SolarRadiation <- SolarRadiation(testdata)
-
-###Calculate Light Factor
-
 LightFactor <- function(data){
-  1 - data$fraction * (1 - (1 - data$CanopyClosure / 100) ^ 2) ^ 0.5
+  #1 - data$fraction * (1 - (1 - data$CanopyClosure / 100) ^ 2) ^ 0.5
+  1 - .9 * (1 - (1 - data$CanopyClosure / 100) ^ 2) ^ 0.5
 }
-
-testdata$LightFactor <- LightFactor(testdata)
-
-###Standard Qual2k Method###
 
 MaxAlgaeDensity_standardQual2k <- function(data){
   load("data/parameters.RData")
   ###Define Phi_Nb###
-  Nitrogen <- data$Ammonium.as.N.mg.L + data$"Nitrate...Nitrite.as.N.mg.L" + data$Nitrite.as.N.mg.L
-  phos <- data$OrthoPhosphate.as.P.mg.L
+  Nitrogen <- data$nitrogen
+  phos <- data$OrthoPhosphate.as.P
   N <- Nitrogen/(Nitrogen+parameters["Inorg_N_Half_Sat"])
   P <- phos/(phos+parameters["Inorg_P_Half_Sat"])
   
@@ -99,21 +59,16 @@ MaxAlgaeDensity_standardQual2k <- function(data){
     (parameters["Respiration"] + parameters["Natural_Death_standard"]))
 }
 
+###Benthic Chlor a
 BenthicChlora <- function(MaxAlgaeDensity){
   MaxAlgaeDensity * parameters["C_AFDW_ratio"]
 }
 
-
-testdata$MaxAlgaeDensity_standardQual2k <- MaxAlgaeDensity_standardQual2k(testdata)
-
-testdata$Benthic_Chlor_a_standardQual2k <- BenthicChlora(testdata$MaxAlgaeDensity)
-
 ###Revised QUAL2K Method###
-
 MaxAlgaeDensity_revisedQual2k <- function(data){
   ###Define Phi_Nb###
-  Nitrogen <- data$Nitrogen..Total.Dissolved.mg.L
-  phos <- data$Phosphorus..Total.Dissolved.mg.L + data$OrthoPhosphate.as.P.mg.L
+  Nitrogen <- data$nitrogen
+  phos <- data$Phosphorus.as.P
   TNdenom <- parameters["gamma_TN"] / 
     (1+(exp(-log10(Nitrogen*1000)*parameters["beta_TN"] + parameters["alpha_TN"])))
   TNlimit <- 1 / (1-TNdenom)
@@ -137,4 +92,22 @@ MaxAlgaeDensity_revisedQual2k <- function(data){
     (parameters["Respiration"] + parameters["Natural_Death_revised"]))
 }
 
-MaxAlgaeDensity_revisedQual2k(testdata)
+###RivsedQual2K Method, Accrual Adjustment###
+MaxAlgaeDensity_accrual <- function (data, MaxAlgaeDensity) {
+  accrual <- 10^(parameters["Biggs_Coefficient1"]*(log10(data$accural)+parameters["Biggs_Coefficient2"])+
+    parameters["Biggs_Coefficient3"]*(log10(data$accural)^2+parameters["Biggs_Coefficient4"]))
+  return(MaxAlgaeDensity * accrual)
+}
+
+BenthicChlora <- function (data, BenthicChlora) {
+  accrual <- 10^(parameters["Biggs_Coefficient1"]*(log10(data$accural)+parameters["Biggs_Coefficient2"])+
+    parameters["Biggs_Coefficient3"]*(log10(data$accural)^2+parameters["Biggs_Coefficient4"]))
+  return(BenthicChlora * accrual)
+}
+
+
+
+
+
+
+
