@@ -1,39 +1,51 @@
 ###Read in data###
-data <- read.csv("P:\\PartTimers\\MarkEngeln\\SWAMPLabResults7_24_2012.csv")
+#data <- read.csv("P:\\PartTimers\\MarkEngeln\\SWAMPLabResults7_24_2012.csv")
+load("data/data.RData")
 
+###Load functions###
+source("R/NNE_functions.R")
 
-###Select Relevant Columns###
-workingdata<-data[, c("StationCode", "LabSampleID", "SampleDate", "DWC_Month", "Replicate",
-                      "AnalyteName", "Result" )]
+###Create smaller, workable subset####
+randomIDs <- sample(data$LabSampleID[data$LabSampleID!="None"], 500)
+testlabdata <- data[which(data$LabSampleID %in% randomIDs), ]
 
-###Convert from flat to wide format###
-library(reshape)
-workingdata <- cast(workingdata, formula = StationCode + LabSampleID + SampleDate + DWC_Month +
-  Replicate ~ AnalyteName, value="Result", fun.aggregate=sum)
-workingdata <- data.frame(workingdata)
+###Create fake phab data###
+StationCode <- unique(testlabdata$StationCode)
+Latitude <- rep(34.6, times=length(StationCode))
+WaterTemperature <- rep(21, times=length(StationCode))
+WaterDepth <- rep(10, times=length(StationCode))
+CanopyClosure <- rep(15, times=length(StationCode))
+accural <- rep(80, times=length(StationCode))
+testphabdata <- data.frame(StationCode, Latitude, WaterTemperature, WaterDepth,
+                           CanopyClosure, accural)
 
-###Sum for total nitrogen###
-workingdata$nitrogen <- apply(workingdata[, 6:11], 1, sum)
+###Error check and format lab data###
+testdataf <- NNEformat(testlabdata)
 
-###Remove observations with missing nitrogen###
-workingdata$nitrogen[workingdata$nitrogen==-88]<-NA
-workingdata <- workingdata[!is.na(workingdata$nitrogen),]
+###Merge data###
+calcdata <- merge(testdataf, testphabdata, by="StationCode", all=F, all.x=T, all.y=F)
 
-###Check for P errors and remove###
-Pcheck <- which(workingdata$OrthoPhosphate.as.P>0 & workingdata$Phosphorus.as.P>0)
-Pcheck2 <- which(workingdata$OrthoPhosphate.as.P>workingdata$Phosphorus.as.P)
-workingdata <- workingdata[!(1:length(workingdata[[1]]) %in% intersect(Pcheck, Pcheck2)),]
+###Calc misc data###
 
-###Calculate Organic P###
-Pcheck <- which(workingdata$OrthoPhosphate.as.P>0 & workingdata$Phosphorus.as.P>0)
-workingdata$OrganicP <- rep(NA, length(workingdata[[1]]))
-workingdata$OrganicP[Pcheck] <- workingdata$Phosphorus.as.P[Pcheck] - 
-  workingdata$OrthoPhosphate.as.P[Pcheck]
-workingdata$OrganicP[is.na(workingdata$OrganicP)] <- 0
+calcdata$SolarRadiation <- SolarRadiation(calcdata)
 
+calcdata$LightFactor <- LightFactor(calcdata)
 
-###Check for outliers###
+###Use calculators###
 
-outliercheck(workingdata, 12:15)
+density_qual2k <- MaxAlgaeDensity_standardQual2k(calcdata)
+benthic_qual2k <- BenthicChlora(density_qual2k)
 
+density_qual2krevised <- MaxAlgaeDensity_revisedQual2k(calcdata)
+benthic_qual2krevised <- BenthicChlora(density_qual2krevised)
 
+density_qual2kaccural <- MaxAlgaeDensity_accrual(calcdata, density_qual2krevised)
+benthic_qual2kaccural <- BenthicChlora_accrual(calcdata, benthic_qual2krevised)
+
+###Bind results###
+qual2k_results <- data.frame(density_qual2k, benthic_qual2k, density_qual2krevised, benthic_qual2krevised,
+           density_qual2kaccural, benthic_qual2kaccural)
+qual2k_results <- cbind(
+  calcdata[, c("StationCode", "LabSampleID", "SampleDate", "Replicate")],
+  qual2k_results)
+View(qual2k_results)

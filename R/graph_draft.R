@@ -13,23 +13,27 @@ d$names <- rep(colnames(data)[2:9], each=20)
 colnames(d) <- c("tn", "P", "names")
 d$type <- rep(c("Benthic Chlorophyll a", "Algal Density"), each=80)
 d$model <- rep(c("Dodds '97", "Dodds '02/'06"), each=40, times=2)
-d$parameter <- rep(c("mean", "max"), each=20, times=4)
+d$parameter <- rep(c("mean Chl a", "max Chl a"), each=20, times=4)
 
 benthicChlor_dodds <- d[d$type=="Benthic Chlorophyll a",]
 
 library(ggplot2)
-ggplot(benthicChlor_dodds , aes(x=tn, y=P, color=names))+geom_line()+ 
+benthic_dodds <- ggplot(benthicChlor_dodds , aes(x=tn, y=P, color=names))+geom_line()+ 
   coord_cartesian(xlim = c(0, 2),ylim = c(0, .35)) + 
   scale_colour_brewer(palette="Set1", name="Model") +
-  scale_x_discrete(name="Nitrogen Limit") + scale_y_continuous(name="Phosporous Limit") +
-  facet_grid(model ~ parameter)
+  scale_x_discrete(name="Total Nitrogen") + scale_y_continuous(name="Total Phosporous") +
+  facet_wrap(model ~ parameter, scales="free")
 
 
 algalDensity_dodds <- d[d$type=="Algal Density",]
   
-ggplot(algalDensity_dodds, aes(x=tn, y=P, group=names, color=names))+geom_line()+ 
+algaldensity_dodds <- ggplot(algalDensity_dodds, aes(x=tn, y=P, group=names, color=names))+geom_line()+ 
   coord_cartesian(xlim = c(0, 2),ylim = c(0, 25)) + 
   scale_colour_brewer(palette="Set1", name="Model") +
-  scale_x_discrete(name="Nitrogen Limit") + scale_y_continuous(name="Phosporous Limit")  +
-  facet_grid(model ~ parameter)
+  scale_x_discrete(name="Total Nitrogen") + scale_y_continuous(name="Total Phosporous")  +
+  facet_wrap(model ~ parameter, scales="free")
 
+pdf(file="test.pdf")
+benthic_dodds
+algaldensity_dodds
+dev.off()
