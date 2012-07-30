@@ -40,17 +40,17 @@ runall <- function (testlabdata, testphabdata) {
   ###Use calculators###
   
   density_qual2k <- MaxAlgaeDensity_standardQual2k(calcdata)
-  benthic_qual2k <- BenthicChlora(density_qual2k)
+  standardQual2k_BenthicChlora <- BenthicChlora(density_qual2k)
   
-  density_qual2krevised <- MaxAlgaeDensity_revisedQual2k(calcdata)
-  benthic_qual2krevised <- BenthicChlora(density_qual2krevised)
-  
-  density_qual2kaccural <- MaxAlgaeDensity_accrual(calcdata, density_qual2krevised)
-  benthic_qual2kaccural <- BenthicChlora_accrual(calcdata, benthic_qual2krevised)
+#   density_qual2krevised <- MaxAlgaeDensity_revisedQual2k(calcdata)
+#   benthic_qual2krevised <- BenthicChlora(density_qual2krevised)
+#   
+#   density_qual2kaccural <- MaxAlgaeDensity_accrual(calcdata, density_qual2krevised)
+#   benthic_qual2kaccural <- BenthicChlora_accrual(calcdata, benthic_qual2krevised)
   
   ###Bind results###
-  qual2k_results <- data.frame(density_qual2k, benthic_qual2k, density_qual2krevised, benthic_qual2krevised,
-             density_qual2kaccural, benthic_qual2kaccural)
+  qual2k_results <- data.frame(density_qual2k, standardQual2k_BenthicChlora)#, density_qual2krevised, benthic_qual2krevised,
+            # density_qual2kaccural, benthic_qual2kaccural)
   qual2k_results <- cbind(
     calcdata[, c("StationCode", "LabSampleID", "SampleDate", "Replicate")],
     qual2k_results)
@@ -59,4 +59,6 @@ runall <- function (testlabdata, testphabdata) {
 
 testdata <- smalldata(data)
 results <- runall(testdata, fakedata(testdata))
-
+#View(results[, c("StationCode", "LabSampleID", "SampleDate", 
+                 #"Replicate", "standardQual2k_MaxAlgaeDensity", "standardQual2k_BenthicChlora")])
+View(results[results$standardQual2k_MaxAlgaeDensity != 0, ])

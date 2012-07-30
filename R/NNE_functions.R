@@ -20,8 +20,12 @@ outliercheck <- function(data, columns){
 }
 
 NNEformat <- function (data) {
+  ###Create IDs###
+  data$CONCATENATE <- paste(data$StationCode, data$LabSampleID, data$SampleDate,
+                            data$Replicate)
+  
   ###Select Relevant Columns###
-  workingdata<-data[, c("SampleRowID", "AnalyteName", "Result" )]
+  workingdata<-data[, c("CONCATENATE", "AnalyteName", "Result" )]
   
   ###Convert from flat to wide format###
   if(require(reshape)==F)
@@ -29,21 +33,29 @@ NNEformat <- function (data) {
     install.packages("reshape")
     require(reshape)
   }
-  workingdata <- cast(workingdata, formula = SampleRowID ~ AnalyteName, value="Result", fun.aggregate=sum)
+  workingdata <- cast(workingdata, formula = CONCATENATE ~ AnalyteName, 
+                      value="Result", fun.aggregate=sum)
   workingdata <- data.frame(workingdata)
-  workingdata <- merge(workingdata, data[, c("SampleRowID", "StationCode", "DWC_Month",
+  workingdata <- merge(workingdata, data[, c("CONCATENATE", "StationCode", "DWC_Month",
                                                  "LabSampleID", "SampleDate","Replicate")],
                        all=F, all.x=T, all.y=F)
-  for(i in 1:length(workingdata)){
-    workingdata[which(workingdata[, i]<0), i] <- NA 
-  }
-  ###Sum for total nitrogen###
-  workingdata$nitrogen <- apply(workingdata[, c("Ammonia.as.N", "Nitrate...Nitrite.as.N",
-                                                "Nitrate.as.N", "Nitrite.as.N", "Nitrogen..Total",
-                                                "Nitrogen..Total.Kjeldahl")], 1, sum)
+   for(i in 1:length(workingdata)){
+     workingdata[which(workingdata[, i]<0), i] <- NA 
+   }
+  workingdata <- workingdata[!duplicated(workingdata[,"CONCATENATE"]),]
   
+  values <- c("Ammonia.as.N", "Nitrate...Nitrite.as.N",
+              "Nitrate.as.N", "Nitrite.as.N", "Nitrogen..Total.Kjeldahl")
+
   ###Remove observations with missing nitrogen###
-  workingdata$nitrogen[workingdata$nitrogen==-88]<-NA
+  for(i in 1:length(workingdata)){
+    workingdata[which(workingdata[,i]==-88), i] <-NA
+  }
+  
+  ###Sum for total nitrogen###
+  workingdata$nitrogen <- apply(workingdata[,values] , 1, sum)
+  workingdata$nitrogen[which(workingdata$Nitrogen..Total>0)] <- 
+    workingdata$Nitrogen..Total[which(workingdata$Nitrogen..Total>0)]
   workingdata <- workingdata[!is.na(workingdata$nitrogen),]
   
   ###Check for P errors and remove###
@@ -78,9 +90,10 @@ NNEformat <- function (data) {
                                        which(!is.na(workingdata$OrganicP))), intersect(
                                        which(!is.na(workingdata$Phosphorus.as.P)),
                                        which(!is.na(workingdata$nitrogen)))),]
+  
+  
 
   return(workingdata)
-  rm("workingdata[fix, fixcolumns]")
 }
 
 SolarRadiation <- function (data) {
@@ -118,17 +131,16 @@ MaxAlgaeDensity_standardQual2k <- function(data){
   Phi_lb <- numerator/(numerator + parameters["Light_Half_Sat"])
   
   ###Calculate metrics###  
-  metric <- (parameters["Max_Growth20_standard"]* Phi_NB * Phi_lb)  * (parameters["Arrhenius_Coefficient"]^(data$WaterTemperature - 20)) / 
+  standardQual2k_MaxAlgaeDensity <- (parameters["Max_Growth20_standard"]* Phi_NB * Phi_lb)  * (parameters["Arrhenius_Coefficient"]^(data$WaterTemperature - 20)) / 
     (parameters["Respiration"] + parameters["Natural_Death_standard"])
-  return(data.frame(metric, Phi_NB))
-
-
+  return(data.frame(standardQual2k_MaxAlgaeDensity, Phi_NB))
 }
 
 ###Benthic Chlor a
-BenthicChlora <- function(MaxAlgaeDensity){
+BenthicChlora <- function(algae_input){
   load("data/parameters.RData")
-  MaxAlgaeDensity * parameters["C_AFDW_ratio"]
+  standardQual2k_BenthicChlora <- algae_input[,1] * parameters["C_AFDW_ratio"]
+  return(standardQual2k_BenthicChlora)
 }
 
 ###Revised QUAL2K Method###
