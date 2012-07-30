@@ -63,6 +63,10 @@ NNEformat <- function (data) {
   Pcheck2 <- which(workingdata$OrthoPhosphate.as.P>workingdata$Phosphorus.as.P)
   workingdata <- workingdata[!(1:length(workingdata[[1]]) %in% intersect(Pcheck, Pcheck2)),]
   
+  ###Fill in Total P###
+  pfill <- which(workingdata$Phosphorus.as.P==0 & workingdata$OrthoPhosphate.as.P>0)
+  workingdata$Phosphorus.as.P[pfill] <- workingdata$OrthoPhosphate.as.P[pfill]
+  
   ###Calculate Organic P###
   Pcheck <- which(workingdata$OrthoPhosphate.as.P>0 & workingdata$Phosphorus.as.P>0)
   workingdata$OrganicP <- rep(NA, length(workingdata[[1]]))
@@ -79,19 +83,18 @@ NNEformat <- function (data) {
     require(Gtk2Extras)
   }
   
-  workingdata <- workingdata[which(workingdata$nitrogen<5),]
-  workingdata <- workingdata[which(workingdata$Phosphorus.as.P<5),]
+  workingdata <- workingdata[which(workingdata$nitrogen<20),]
+  workingdata <- workingdata[which(workingdata$Phosphorus.as.P<20),]
 
   outliers <- outliercheck(workingdata, 12:15)
   fix <- which(rownames(workingdata) %in% outliers[, 1])
-  fixcolumns <- c("OrthoPhosphate.as.P", "OrganicP", "Phosphorus.as.P", "nitrogen")
+  fixcolumns <- c("OrthoPhosphate.as.P", "Phosphorus.as.P", "Ammonia.as.N", "Nitrate...Nitrite.as.N",
+                  "Nitrate.as.N", "Nitrite.as.N", "Nitrogen..Total.Kjeldahl", "Nitrogen..Total")
   workingdata[fix, fixcolumns] <- dfedit(workingdata[fix, fixcolumns])
   workingdata <- workingdata[intersect(intersect(which(!is.na(workingdata$OrthoPhosphate.as.P)), 
                                        which(!is.na(workingdata$OrganicP))), intersect(
                                        which(!is.na(workingdata$Phosphorus.as.P)),
                                        which(!is.na(workingdata$nitrogen)))),]
-  
-  
 
   return(workingdata)
 }
@@ -168,8 +171,16 @@ MaxAlgaeDensity_revisedQual2k <- function(data){
   Phi_lb <- numerator/(numerator + parameters["Light_Half_Sat"])
   
   ###Calculate metrics###  
-  return((parameters["Max_Growth20_revised"]* Phi_NB * Phi_lb)  * (parameters["Arrhenius_Coefficient"]^(data$WaterTemperature-20)) / 
-    (parameters["Respiration"] + parameters["Natural_Death_revised"]))
+  revisedQual2k_MaxAlgaeDensity <- (parameters["Max_Growth20_revised"]* Phi_NB * Phi_lb)  * (parameters["Arrhenius_Coefficient"]^(data$WaterTemperature-20)) / 
+    (parameters["Respiration"] + parameters["Natural_Death_revised"])
+  return(data.frame(revisedQual2k_MaxAlgaeDensity, Phi_NB))
+}
+
+###Revised Benthic Chlor a
+RevisedQual2k_BenthicChlora <- function(algae_input){
+  load("data/parameters.RData")
+  RevisedQual2k_BenthicChlora <- algae_input[,1] * parameters["C_AFDW_ratio"]
+  return(RevisedQual2k_BenthicChlora)
 }
 
 ###RivsedQual2K Method, Accrual Adjustment###

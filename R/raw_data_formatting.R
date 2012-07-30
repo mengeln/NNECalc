@@ -3,7 +3,7 @@ load("data/data.RData")
 
 
 smalldata <- function (data) {
-  ###Create smaller, workable subset####
+  ###Create smaller, workable subset
   randomIDs <- sample(data$LabSampleID[data$LabSampleID!="None"], 500)
   testlabdata <- data[which(data$LabSampleID %in% randomIDs), ]
   return(testlabdata)
@@ -42,15 +42,15 @@ runall <- function (testlabdata, testphabdata) {
   density_qual2k <- MaxAlgaeDensity_standardQual2k(calcdata)
   standardQual2k_BenthicChlora <- BenthicChlora(density_qual2k)
   
-#   density_qual2krevised <- MaxAlgaeDensity_revisedQual2k(calcdata)
-#   benthic_qual2krevised <- BenthicChlora(density_qual2krevised)
-#   
-#   density_qual2kaccural <- MaxAlgaeDensity_accrual(calcdata, density_qual2krevised)
-#   benthic_qual2kaccural <- BenthicChlora_accrual(calcdata, benthic_qual2krevised)
+  density_qual2krevised <- MaxAlgaeDensity_revisedQual2k(calcdata)
+  RevisedQual2k_BenthicChlora <- RevisedQual2k_BenthicChlora(density_qual2krevised)
+  
+  density_qual2kaccural <- MaxAlgaeDensity_accrual(calcdata, density_qual2krevised)
+  benthic_qual2kaccural <- BenthicChlora_accrual(calcdata, RevisedQual2k_BenthicChlora)
   
   ###Bind results###
-  qual2k_results <- data.frame(density_qual2k, standardQual2k_BenthicChlora)#, density_qual2krevised, benthic_qual2krevised,
-            # density_qual2kaccural, benthic_qual2kaccural)
+  qual2k_results <- data.frame(density_qual2k, standardQual2k_BenthicChlora, density_qual2krevised, RevisedQual2k_BenthicChlora,
+            density_qual2kaccural, benthic_qual2kaccural)
   qual2k_results <- cbind(
     calcdata[, c("StationCode", "LabSampleID", "SampleDate", "Replicate")],
     qual2k_results)
