@@ -137,7 +137,7 @@ MaxAlgaeDensity_standardQual2k <- function(data){
   ###Calculate metrics###  
   standardQual2k_MaxAlgaeDensity <- (parameters["Max_Growth20_standard"]* Phi_NB * Phi_lb)  * (parameters["Arrhenius_Coefficient"]^(data$WaterTemperature - 20)) / 
     (parameters["Respiration"] + parameters["Natural_Death_standard"])
-  return(data.frame(standardQual2k_MaxAlgaeDensity, Phi_NB))
+  return(data.frame(standardQual2k_MaxAlgaeDensity, Phi_lb))
 }
 
 ###Benthic Chlor a
@@ -174,7 +174,7 @@ MaxAlgaeDensity_revisedQual2k <- function(data){
   ###Calculate metrics###  
   revisedQual2k_MaxAlgaeDensity <- (parameters["Max_Growth20_revised"]* Phi_NB * Phi_lb)  * (parameters["Arrhenius_Coefficient"]^(data$WaterTemperature-20)) / 
     (parameters["Respiration"] + parameters["Natural_Death_revised"])
-  return(data.frame(revisedQual2k_MaxAlgaeDensity, Phi_NB))
+  return(data.frame(revisedQual2k_MaxAlgaeDensity, Phi_lb))
 }
 
 ###Revised Benthic Chlor a

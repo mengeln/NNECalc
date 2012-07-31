@@ -45,25 +45,64 @@
 ###Qual2k Method###
 
 qual2kgraph <- function (data) {
-  load("data/parameters.RData")
-  data <- data[which(data$Phi_NB != 0), ]
-  data <- data[which(data$Phi_NB != 0), ]
-  TP <- parameters["Inorg_P_Half_Sat"]*(data$Phi_NB/(1-data$Phi_NB)) * 
-    (data$Phosphorus.as.P/data$OrthoPhosphate.as.P)
+  library(ggplot2)
+  load("Data/parameters.RData") 
+  load("Data/plotadj.RData")
+  load("Data/TNlookup.RData")
+  load("Data/TPlookup.RData")
+  TPlookup <- TPlookup[order(TPlookup$PhiNb),]
   
-  orgN <- rowSums(data[, c("Ammonia.as.N", "Nitrate...Nitrite.as.N", 
-                           "Nitrate.as.N", "Nitrite.as.N")])
-  TN <- parameters["Inorg_N_Half_Sat"]*(data$Phi_NB/(1-data$Phi_NB)) *
-    (data$nitrogen/orgN)
-  TN[is.na(TN)] <- 0
-  TN[TN==Inf] <- 0
-  TP[is.na(TP)] <- 0
-  TP[TP==Inf] <- 0
-  targetlimits <- data.frame(data$StationCode, data$LabSampleID, data$SampleDate, TP, TN)
-  data$within_boundries <- sapply(1:length(data$StationCode), function(i){
-    if((targetlimits$TP[i] > data$Phosphorus.as.P[i]) & (targetlimits$TN[i] > data$nitrogen[i])){T}else{F}})
-  return(ggplot(data, aes(x=nitrogen, y=Phosphorus.as.P, color=within_boundries))+geom_point())
+  model <- c("Standard QUAL2K, max algae density", "Standard QUAL2K, benthic chl a",
+             "Revised QUAL2K, max algae density", "Revised QUAL2K, benthic chl a",
+             "Revised QUAL2K with accrual adj, max algae density", 
+             "Revised QUAL2K with accrual adj, benthic chl a")
 
+  for(j in 1:6){
+    adjratio <- plotadj[j,] * 100
+    if(j >= 5){
+      accural <- 10^(parameters["Biggs_Coefficient1"]*(log10(data$accural)+parameters["Biggs Coefficient2"])+
+        parameters["Biggs_Coefficient3"]*(log10(data$accural)^2+parameters["Biggs_Coefficient4"]))
+      adjratio <- adjratio * accural
+      }
+    if(j < 3){
+      Phi_NB <- sapply(1:length(data$Phi_lb), function(i){
+        min(.999, (adjratio * (parameters["Respiration"] + parameters["Natural_Death_standard"]) /
+          (parameters["Max_Growth20_standard"] * (parameters["Arrhenius_Coefficient"]^(data$WaterTemperature[i]-20)) *
+          data$Phi_lb[i])))
+      }
+      )                 
+      TP <- parameters["Inorg_P_Half_Sat"]*(Phi_NB/(1-Phi_NB)) * 
+        (data$Phosphorus.as.P/data$OrthoPhosphate.as.P)
+      
+      orgN <- rowSums(data[, c("Ammonia.as.N", "Nitrate...Nitrite.as.N", 
+                               "Nitrate.as.N", "Nitrite.as.N")], na.rm=T)
+      TN <- parameters["Inorg_N_Half_Sat"]*(Phi_NB/(1-Phi_NB)) *
+        (data$nitrogen/orgN)
+      targetlimits <- data.frame(data$StationCode, data$LabSampleID, data$SampleDate, TP, TN)
+    } else
+    if(j >= 3){
+      Phi_NB <- sapply(1:length(data$Phi_lb), function(i){
+        min(.999, (adjratio * (parameters["Respiration"] + parameters["Natural_Death_revised"]) /
+          (parameters["Max_Growth20_revised"] * (parameters["Arrhenius_Coefficient"]^(data$WaterTemperature[i]-20)) *
+          data$Phi_lb[i])))
+      }
+      )
+      TN <- TNlookup$TN[findInterval(Phi_NB, TNlookup$Phi_Nb)]
+      
+      TP <- TPlookup$TP[findInterval(Phi_NB, TPlookup$PhiNb)]
+      
+      targetlimits <- data.frame(data$StationCode, data$LabSampleID, data$SampleDate, TP, TN)
+    }
+    data$within_boundries <- sapply(1:length(data$StationCode), function(i){
+      if((targetlimits$TP[i] <= data$Phosphorus.as.P[i]) | 
+        (targetlimits$TN[i] <= data$nitrogen[i])){"Over allowable"}else{"Within allowable"}})
+    print(
+      ggplot(data, aes(x=nitrogen, y=Phosphorus.as.P, color=within_boundries))+geom_point() +
+        scale_x_continuous(name="Total Nitrogen (mg/L)") + scale_y_continuous(name="Total Phosphorus (mg/L)") +
+        scale_colour_hue(name= paste("Nutrient Limit for model:\n", model[j]))
+          )
+  }
 }
-
-qual2kgraph(results)
+pdf(file="C:\\Documents and Settings\\gisuser\\Desktop\\test.pdf")
+qual2kgraph(results[which(results$standardQual2k_MaxAlgaeDensity>0),])
+dev.off()
