@@ -1,8 +1,9 @@
-outliercheck <- function(data, columns){
+outliercheck <- function(data){
   Result <- vector()
   AnalyteName <- vector()
-  SampleID <- vector()
-  rowid <- vector()
+  CONCATENATE <- vector()
+  columns <- which(colnames(data) %in% c("Ammonia.as.N", "Nitrate...Nitrite.as.N",
+                                         "Nitrate.as.N", "Nitrite.as.N", "Nitrogen..Total.Kjeldahl"))
   ###Calculate z scores for all observations in selected columns###
   for(j in columns){
     cmean <- .colMeans(data[, j], m=length(data[, j]), n=1, na.rm=T)
@@ -10,13 +11,12 @@ outliercheck <- function(data, columns){
     problems <- which(sapply(1:length(data[, j]), function(i){
       (data[i, j]-cmean)/csd})>2)
     ###Concatenate the results from each loop together###
-    rowid <- c(rowid, rownames(data[problems,]))
-    SampleID <- c(rowid, SampleID, as.character(data[problems, "LabSampleID"]))
+    CONCATENATE <- c(CONCATENATE, data[problems, "CONCATENATE"])
     Result <- c(Result, data[problems, j])
     AnalyteName <- c(AnalyteName, rep(colnames(data)[j], length(data[problems, j])))
   }
   ###Bind columns together## 
-  return(cbind(rowid, SampleID, AnalyteName, Result))
+  return(cbind(CONCATENATE, AnalyteName, Result))
 }
 
 NNEformat <- function (data) {
@@ -39,17 +39,18 @@ NNEformat <- function (data) {
   workingdata <- merge(workingdata, data[, c("CONCATENATE", "StationCode", "DWC_Month",
                                                  "LabSampleID", "SampleDate","Replicate")],
                        all=F, all.x=T, all.y=F)
-   for(i in 1:length(workingdata)){
-     workingdata[which(workingdata[, i]<0), i] <- NA 
-   }
-  workingdata <- workingdata[!duplicated(workingdata[,"CONCATENATE"]),]
   
   values <- c("Ammonia.as.N", "Nitrate...Nitrite.as.N",
               "Nitrate.as.N", "Nitrite.as.N", "Nitrogen..Total.Kjeldahl")
+  
 
-  ###Remove observations with missing nitrogen###
-  for(i in 1:length(workingdata)){
-    workingdata[which(workingdata[,i]==-88), i] <-NA
+  workingdata <- workingdata[!duplicated(workingdata[,"CONCATENATE"]),]
+
+  ###Remove observations with missing values###
+  for(i in which(colnames(workingdata) %in% c(values, 
+                                              "OrthoPhosphate.as.P", "Phosphorus.as.P"))){
+    if(length(which(workingdata[, i]<0))>0){
+    workingdata[which(workingdata[, i]<0), i] <- NA }
   }
   
   ###Sum for total nitrogen###
@@ -86,8 +87,8 @@ NNEformat <- function (data) {
   workingdata <- workingdata[which(workingdata$nitrogen<20),]
   workingdata <- workingdata[which(workingdata$Phosphorus.as.P<20),]
 
-  outliers <- outliercheck(workingdata, 12:15)
-  fix <- which(rownames(workingdata) %in% outliers[, 1])
+  outliers <- outliercheck(workingdata)
+  fix <- which(workingdata$CONCATENATE %in% outliers[, 1])
   fixcolumns <- c("OrthoPhosphate.as.P", "Phosphorus.as.P", "Ammonia.as.N", "Nitrate...Nitrite.as.N",
                   "Nitrate.as.N", "Nitrite.as.N", "Nitrogen..Total.Kjeldahl", "Nitrogen..Total")
   workingdata[fix, fixcolumns] <- dfedit(workingdata[fix, fixcolumns])
