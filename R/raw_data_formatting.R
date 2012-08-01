@@ -16,9 +16,11 @@ fakedata <- function (data) {
   WaterTemperature <- rep(21, times=length(StationCode))
   WaterDepth <- rep(10, times=length(StationCode))
   CanopyClosure <- rep(15, times=length(StationCode))
-  accural <- rep(80, times=length(StationCode))
+  accrual <- rep(80, times=length(StationCode))
+  Turbidity <- rep(.6, time=length(StationCode))
+  LightFraction <- rep(.9, times=length(StationCode))
   testphabdata <- data.frame(StationCode, Latitude, WaterTemperature, WaterDepth,
-                             CanopyClosure, accural)
+                             CanopyClosure, accrual, Turbidity, LightFraction)
 }
 
 runall <- function (testlabdata, testphabdata) {
@@ -36,6 +38,8 @@ runall <- function (testlabdata, testphabdata) {
   calcdata$SolarRadiation <- SolarRadiation(calcdata)
   
   calcdata$LightFactor <- LightFactor(calcdata)
+  
+  calcdata$LightExtinction <- LightExtinction(calcdata)
   
   ###Use calculators###
   

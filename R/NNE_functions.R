@@ -115,8 +115,19 @@ SolarRadiation <- function (data) {
 }
 
 LightFactor <- function(data){
-  #1 - data$fraction * (1 - (1 - data$CanopyClosure / 100) ^ 2) ^ 0.5
-  1 - .9 * (1 - (1 - data$CanopyClosure / 100) ^ 2) ^ 0.5
+  if(is.null(data$LightFraction)){
+    fraction <- .9
+  } else
+  {fraction <- data$LightFraction}
+  return(1 - fraction * (1 - (1 - data$CanopyClosure / 100) ^ 2) ^ 0.5)
+}
+
+LightExtinction <- function(data){
+  if(is.null(data$Turbidity)){
+    Turbidity <- rep(.6, times=length(data$StationCode))
+  } else
+  {Turbidity <- data$Turbidity}
+  return((.1 * Turbidity) + .44)
 }
 
 MaxAlgaeDensity_standardQual2k <- function(data){
@@ -130,8 +141,8 @@ MaxAlgaeDensity_standardQual2k <- function(data){
   Phi_NB <- sapply(1:length(Nitrogen), function(i){min(c(N[i], P[i]), na.rm=T)})
   
   ###Define Phi_lb###
-  numerator <- data$SolarRadiation * data$LightFactor * exp(-1 * 
-    (parameters["Light_Half_Sat"]/100) * (data$WaterDepth/100))
+  numerator <- data$SolarRadiation * data$LightFactor * exp(-1 *
+    data$LightExtinction * (data$WaterDepth/100))
   Phi_lb <- numerator/(numerator + parameters["Light_Half_Sat"])
   
   ###Calculate metrics###  
@@ -168,7 +179,7 @@ MaxAlgaeDensity_revisedQual2k <- function(data){
   
   ###Define Phi_lb###
   numerator <- data$SolarRadiation * data$LightFactor * exp(-1 * 
-    (parameters["Light_Half_Sat"]/100) * (data$WaterDepth/100))
+    data$LightExtinction * (data$WaterDepth/100))
   Phi_lb <- numerator/(numerator + parameters["Light_Half_Sat"])
   
   ###Calculate metrics###  
@@ -187,16 +198,24 @@ RevisedQual2k_BenthicChlora <- function(algae_input){
 ###RivsedQual2K Method, Accrual Adjustment###
 MaxAlgaeDensity_accrual <- function (data, MaxAlgaeDensity) {
   load("data/parameters.RData")
-  accrual <- 10^(parameters["Biggs_Coefficient1"]*(log10(data$accural)+parameters["Biggs Coefficient2"])+
-    parameters["Biggs_Coefficient3"]*(log10(data$accural)^2+parameters["Biggs_Coefficient4"]))
-  return(MaxAlgaeDensity * accrual)
+  if(is.null(data$accrual)){
+    accrual <- 120
+  } else
+  {accrual <- data$accrual}
+  accrualadj <- 10^(parameters["Biggs_Coefficient1"]*(log10(accrual)+parameters["Biggs Coefficient2"])+
+    parameters["Biggs_Coefficient3"]*(log10(accrual)^2+parameters["Biggs_Coefficient4"]))
+  return(MaxAlgaeDensity * accrualadj)
 }
 
 BenthicChlora_accrual <- function (data, BenthicChlora) {
   load("data/parameters.RData")
-  accrual <- 10^(parameters["Biggs_Coefficient1"]*(log10(data$accural)+parameters["Biggs Coefficient2"])+
-    parameters["Biggs_Coefficient3"]*(log10(data$accural)^2+parameters["Biggs_Coefficient4"]))
-  return(BenthicChlora * accrual)
+  if(is.null(data$accrual)){
+    accrual <- 120
+  } else
+  {accrual <- data$accrual}
+  accrualadj <- 10^(parameters["Biggs_Coefficient1"]*(log10(accrual)+parameters["Biggs Coefficient2"])+
+    parameters["Biggs_Coefficient3"]*(log10(accrual)^2+parameters["Biggs_Coefficient4"]))
+  return(BenthicChlora * accrualadj)
 }
 
 
