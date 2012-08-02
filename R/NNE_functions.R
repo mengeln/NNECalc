@@ -1,3 +1,45 @@
+Qual2k <- function (testlabdata, testphabdata) {
+  ###Error check and format lab data###
+  testdataf <- NNEformat(testlabdata)
+  
+  ###Merge data###
+  calcdata <- merge(testdataf, testphabdata, by=c("StationCode", "SampleDate"),
+                                                  all=F, all.x=T, all.y=F)
+  calcdata <- na.omit(calcdata)
+  ###Fix column names###
+  colnames(calcdata)[grep("Canopy", colnames(calcdata))] <- "CanopyClosure"
+  colnames(calcdata)[grep("Depth", colnames(calcdata))] <- "WaterDepth"
+  colnames(calcdata)[grep("Temperature", colnames(calcdata))] <- "WaterTemperature"
+  
+  ###Calc misc data###
+  
+  calcdata$SolarRadiation <- SolarRadiation(calcdata)
+  
+  calcdata$LightFactor <- LightFactor(calcdata)
+  
+  calcdata$LightExtinction <- LightExtinction(calcdata)
+  
+  ###Use calculators###
+  
+  density_qual2k <- MaxAlgaeDensity_standardQual2k(calcdata)
+  standardQual2k_BenthicChlora <- BenthicChlora(density_qual2k)
+  
+  density_qual2krevised <- MaxAlgaeDensity_revisedQual2k(calcdata)
+  RevisedQual2k_BenthicChlora <- RevisedQual2k_BenthicChlora(density_qual2krevised)
+  
+  density_qual2kaccural <- MaxAlgaeDensity_accrual(calcdata, density_qual2krevised)
+  benthic_qual2kaccural <- BenthicChlora_accrual(calcdata, RevisedQual2k_BenthicChlora)
+  
+  ###Bind results###
+  qual2k_results <- data.frame(density_qual2k, standardQual2k_BenthicChlora, density_qual2krevised, RevisedQual2k_BenthicChlora,
+                               density_qual2kaccural, benthic_qual2kaccural)
+  qual2k_results <- cbind(
+    calcdata[, c("StationCode", "SampleDate", "CollectionTime", "Replicate")],
+    qual2k_results)
+  return(merge(calcdata, qual2k_results, all=F, all.y=T, all.x=T))
+}
+
+
 outliercheck <- function(data){
   Result <- vector()
   AnalyteName <- vector()
@@ -20,11 +62,23 @@ outliercheck <- function(data){
 }
 
 NNEformat <- function (data) {
-  ###Create IDs###
-  data$CONCATENATE <- paste(data$StationCode, data$LabSampleID, data$SampleDate,
-                            data$Replicate)
+  ###Clean up SWAMP data table###
+  
+  data <- data[which(data$SampleTypeName %in% c("Grab", "Integrate")),]
+  data_aggregate <- aggregate(Result~StationCode+SampleDate+CollectionTime+
+    AnalyteName, data=data, FUN=mean, na.rm=T)
+  data_aggregate$CONCATENATE <- paste(data_aggregate$StationCode, data_aggregate$SampleDate,
+                                      data_aggregate$CollectionTime)
+  data$CONCATENATE <- paste(data$StationCode, data$SampleDate,
+                            data$CollectionTime)
+  data_aggregate$DWC_Month <- data$DWC_Month[match(data_aggregate$CONCATENATE, data$CONCATENATE)]
+  data_aggregate$Replicate <- data$Replicate[match(data_aggregate$CONCATENATE, data$CONCATENATE)]
+  
+  data <- data_aggregate
+  data <- data[order(data$CONCATENATE),]
   
   ###Select Relevant Columns###
+  
   workingdata<-data[, c("CONCATENATE", "AnalyteName", "Result" )]
   
   ###Convert from flat to wide format###
@@ -37,9 +91,8 @@ NNEformat <- function (data) {
                       value="Result", fun.aggregate=sum)
   workingdata <- data.frame(workingdata)
   workingdata <- merge(workingdata, data[, c("CONCATENATE", "StationCode", "DWC_Month",
-                                                 "LabSampleID", "SampleDate","Replicate")],
+                                                 "SampleDate", "CollectionTime", "Replicate")],
                        all=F, all.x=T, all.y=F)
-  
   values <- c("Ammonia.as.N", "Nitrate...Nitrite.as.N",
               "Nitrate.as.N", "Nitrite.as.N", "Nitrogen..Total.Kjeldahl")
   
@@ -103,10 +156,10 @@ NNEformat <- function (data) {
 SolarRadiation <- function (data) {
   load("data/radiationTable.RData")
   data$DWC_Month <- as.character(data$DWC_Month)
-  lowerBound <- as.numeric(sapply(1:length(data$LabSampleID), function(i){
+  lowerBound <- as.numeric(sapply(1:length(data$StationCode), function(i){
     radiationTable[radiationTable$Month==floor(data$Latitude[i]), data$DWC_Month[i]]
   }))
-  upperBound <- as.numeric(sapply(1:length(data$LabSampleID), function(i){
+  upperBound <- as.numeric(sapply(1:length(data$StationCode), function(i){
     radiationTable[radiationTable$Month==ceiling(data$Latitude[i]), data$DWC_Month[i]]
   }))
   return(sapply(1:length(lowerBound), function(i){
@@ -142,7 +195,7 @@ MaxAlgaeDensity_standardQual2k <- function(data){
   
   ###Define Phi_lb###
   numerator <- data$SolarRadiation * data$LightFactor * exp(-1 *
-    data$LightExtinction * (data$WaterDepth/100))
+    data$LightExtinction * (data$WaterDepth))
   Phi_lb <- numerator/(numerator + parameters["Light_Half_Sat"])
   
   ###Calculate metrics###  
@@ -179,7 +232,7 @@ MaxAlgaeDensity_revisedQual2k <- function(data){
   
   ###Define Phi_lb###
   numerator <- data$SolarRadiation * data$LightFactor * exp(-1 * 
-    data$LightExtinction * (data$WaterDepth/100))
+    data$LightExtinction * (data$WaterDepth))
   Phi_lb <- numerator/(numerator + parameters["Light_Half_Sat"])
   
   ###Calculate metrics###  
