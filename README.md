@@ -9,8 +9,6 @@ This project is for developing a standard tool for predicting Chlorophyll concen
 
 ### Project Status
 
-* alage_calculator.R
-This file is no longer in use and will eventually be deleted.
 
 * graph_draft.R
 Qual2k graphing tool function. Dodds graphing tool still in early stages of development.
@@ -21,7 +19,7 @@ Functional. Sketches of scripts involved in modeling chl-a ~ nutrient based on C
 * NNE_functions.R
 All working functions intended to be used in the final product are stored here.
 
-* raw data formatting.R
+* test_scripts.R
 Test scripts for running preliminary data through NNE_functions.
 
 

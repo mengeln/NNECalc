@@ -20,9 +20,9 @@ validate <- read.csv("P:\\PartTimers\\MarkEngeln\\NNECalc\\Data\\validate.csv", 
 ###Run##
 source("R/NNE_functions.R")
 results <- NNEcalc(data, validate)
-
 View(results)
 
-testdata <- Qual2k(SWAMPformat(data, validate))
 
+###Target calculator testing###
+testdata <- Qual2k(SWAMPformat(data, validate))
 View(Qual2k_targets(testdata, 100))
