@@ -16,9 +16,9 @@ qual2kgraph <- function (data, target) {
   for(j in 1:6){
     adjratio <- plotadj[j,] * target
     if(j >= 5){
-      accural <- 10^(parameters["Biggs_Coefficient1"]*(log10(data$accural)+parameters["Biggs Coefficient2"])+
-        parameters["Biggs_Coefficient3"]*(log10(data$accural)^2+parameters["Biggs_Coefficient4"]))
-      adjratio <- adjratio * accural
+      accrual <- 10^(parameters["Biggs_Coefficient1"]*(log10(data$accrual)+parameters["Biggs Coefficient2"])+
+        parameters["Biggs_Coefficient3"]*(log10(data$accrual)^2+parameters["Biggs_Coefficient4"]))
+      adjratio <- adjratio * accrual
       }
     if(j < 3){
       Phi_NB <- sapply(1:length(data$Phi_lb), function(i){
