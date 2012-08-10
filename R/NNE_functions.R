@@ -20,10 +20,10 @@ NNEcalc <- function(testlabdata, testphabdata){
 
 ###Creates usable data frame from a SWAMP table and a phab data frame
 SWAMPformat <- function(testlabdata, testphabdata){
-  
+
   ###Format SWAMP data and merge it with phab data###
   calcdata <- convert_merge(testlabdata, testphabdata)
-  
+
   ###Add in Misc data
   
   calcdata <- miscData(calcdata)
@@ -67,18 +67,19 @@ Dodds <- function(calcdata){
 ###Rename columns for data being entered already in wide format###
 colRename <- function(data){
   colnames(data)[grep("SiteCode", colnames(data))]  <- "StationCode"
-  
+  colnames(data)[grep("Nitrogen..Total", colnames(data))] <- "Nitrogen..Total"
   colnames(data)[grep("Ammoni", colnames(data))] <- "Ammonia.as.N"
-  colnames(data)[grep("Organic.N", colnames(data))] <- "nitrate...nitrite.as.N"
-  colnames(data)[grep("Nitrate/Nitrite", colnames(data))] <- "nitrate...nitrite.as.N"
+  #colnames(data)[grep("Organic.N", colnames(data))] <- "nitrate...nitrite.as.N"
+  #colnames(data)[grep("Nitrate/Nitrite", colnames(data))] <- "nitrate...nitrite.as.N"
   colnames(data)[grep("Nitrate", colnames(data))] <- "Nitrate.as.N"
   colnames(data)[grep("Nitrite", colnames(data))] <- "Nitrite.as.N"
-  colnames(data)[grep("nitrate...nitrite.as.N", colnames(data))] <- "Nitrate...Nitrite.as.N"
-  colnames(data)[grep("Kjeldahl", colnames(data))] <-  "Nitrogen..Total.Kjeldahl"
-  colnames(data)[grep("Nitrogen, Total", colnames(data))] <- "Nitrogen..Total"
+  #colnames(data)[grep("nitrate...nitrite.as.N", colnames(data))] <- "Nitrate...Nitrite.as.N"
+  colnames(data)[grep("Organic.N", colnames(data))] <-  "Nitrogen..Total.Kjeldahl"
+  
   
   colnames(data)[grep("OrthoPhosphate", colnames(data))] <- "OrthoPhosphate.as.P"
   colnames(data)[grep("Phosphorus", colnames(data))] <- "Phosphorus.as.P"
+  colnames(data)[grep("Organic.P", colnames(data))] <- "OrganicP"
   
   colnames(data)[grep("Depth", colnames(data))] <- "WaterDepth"
   colnames(data)[grep("Temperature", colnames(data))] <- "WaterTemperature"
@@ -102,10 +103,10 @@ colRename <- function(data){
 ###Low Level Functions###
 #########################
 ###Convert SWAMP data and merge it with PHAB data###
-convert_merge <- function(data, phab){
+convert_merge <- function(testlabdata, testphabdata){
   ###Error check and format lab data###
   testdataf <- NNEformat(testlabdata)
-  
+
   ###Change IDs to characters###
   testphabdata$StationCode <- as.character(testphabdata$StationCode)
   testphabdata$SampleDate <- as.character(testphabdata$SampleDate)
@@ -113,7 +114,7 @@ convert_merge <- function(data, phab){
   testlabdata$SampleDate <- as.character(testlabdata$SampleDate)
   ###Merge data###
   calcdata <- merge(testdataf, testphabdata, by=c("StationCode", "SampleDate"),
-                    all=F, all.x=T, all.y=F)
+                    all=F)
   calcdata
 }
 
@@ -145,11 +146,28 @@ NNEformat <- function (data) {
   ###Clean up SWAMP data table###
   
   data <- data[which(data$SampleTypeName %in% c("Grab", "Integrate")),]
-  data$Result[which(data$Result=="")] <- NA
+  
+  
+  ###Fill in ND and DNQ##
+  
+  if(!is.null(data$ResQualCode) & !is.null(data$MDL) & !is.null(data$RL)){
+    MDL <- which(data$MDL>0)
+    
+    ND <- intersect(which(data$ResQualCode=="ND"), MDL)
+    data$Result[ND] <- data$MDL[ND]/2
+    
+    RL <- which(data$RL>0)
+    DNQ <- intersect(which(data$ResQualCode=="DNQ"), RL)
+    data$Result[DNQ] <- (data$RL[DNQ] - data$MDL[DNQ])/2
+  }
+  
   data$Result[which(data$Result<0)] <- NA
+  data$Result[which(data$Result=="")] <- NA
+  
   data$Result <- as.numeric(as.character(data$Result))
   data_aggregate <- aggregate(Result~StationCode+SampleDate+CollectionTime+
     AnalyteName, data=data, FUN=mean, na.rm=T)
+  data_aggregate$Result <- round(data_aggregate$Result, digits=6)
   data_aggregate$CONCATENATE <- paste(data_aggregate$StationCode, data_aggregate$SampleDate,
                                       data_aggregate$CollectionTime)
   data$CONCATENATE <- paste(data$StationCode, data$SampleDate,
@@ -234,6 +252,12 @@ miscData <- function (calcdata) {
   colnames(calcdata)[grep("Depth", colnames(calcdata))] <- "WaterDepth"
   colnames(calcdata)[grep("Temperature", colnames(calcdata))] <- "WaterTemperature"
   
+  calcdata <- calcdata[which(!is.na(calcdata$Latitude)),]
+  calcdata <- calcdata[which(!is.na(calcdata$DWC_Month)),]
+  
+  calcdata$Turbidity[which(calcdata$Turbidity>300)] <- 300
+  calcdata$Turbidity[which(calcdata$Turbidity<0)] <- 0
+  
   ###Calc misc data###
   
   calcdata$SolarRadiation <- SolarRadiation(calcdata)
@@ -273,13 +297,15 @@ SolarRadiation <- function (data) {
   load("data/radiationTable.RData")
   data$DWC_Month <- as.character(data$DWC_Month)
   ###Round down##
-  lowerBound <- as.numeric(sapply(1:length(data$StationCode), function(i){
-    radiationTable[radiationTable$Month==floor(data$Latitude[i]), data$DWC_Month[i]]
-  }))
+  lbound <- Vectorize(function(L, M){
+    radiationTable[which(radiationTable$Month==floor(as.numeric(L))), M]
+  })
+  lowerBound <- unlist(lbound(data$Latitude, data$DWC_Month))
   ###Round up###
-  upperBound <- as.numeric(sapply(1:length(data$StationCode), function(i){
-    radiationTable[radiationTable$Month==ceiling(data$Latitude[i]), data$DWC_Month[i]]
-  }))
+  ubound <- Vectorize(function(L, M){
+    radiationTable[which(radiationTable$Month==ceiling(as.numeric(L))), M]
+  })
+  upperBound <- unlist(ubound(data$Latitude, data$DWC_Month))
   ###Return result###
   result <- upperBound + ((lowerBound-upperBound)*(data$Latitude-floor(data$Latitude)))
   result
@@ -303,7 +329,8 @@ LightExtinction <- function(data){
   } else
   {Turbidity <- data$Turbidity
    Turbidity[is.na(Turbidity)] <- .6} ###Fills in NAs from user input with default value
-  return((.1 * Turbidity) + .44)
+  
+  (.1 * Turbidity) + .44
 }
 
 ###Creates column accrual if it doesn't yet exist###
@@ -322,7 +349,9 @@ accrual <- function(data) {
 MaxAlgaeDensity_standardQual2k <- function(data){
   load("data/parameters.RData")
   ###Define Phi_Nb###
-  Nitrogen <- data$nitrogen
+  #Nitrogen <- data$nitrogen
+  Nitrogen <- apply(data[, c("Ammonia.as.N", "Nitrite.as.N", "Nitrate.as.N", 
+                             "Nitrate...Nitrite.as.N")], 1, sum, na.rm=T)
   phos <- data$OrthoPhosphate.as.P
   N <- Nitrogen/(Nitrogen+parameters["Inorg_N_Half_Sat"])
   P <- phos/(phos+parameters["Inorg_P_Half_Sat"])
@@ -428,8 +457,6 @@ MaxAlgaeDensity_Dodds02 <- function(data){
   return(cbind(MeanAlgalDen_Dodds02,MeanBenthicChlA_Dodds02,MaxBenthicChlA_Dodds02,MaxAlgalDen_Dodds02))
   
 }
-
-#log(max Chl a) = 0.722 + 0.349 log(TN) +0.256 log(TP), R2 = 0.32.
 
 
 ####target calculator; in progress###
