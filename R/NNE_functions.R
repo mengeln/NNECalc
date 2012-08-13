@@ -106,7 +106,7 @@ colRename <- function(data){
 convert_merge <- function(testlabdata, testphabdata){
   ###Error check and format lab data###
   testdataf <- NNEformat(testlabdata)
-
+  global1 <<- testdataf
   ###Change IDs to characters###
   testphabdata$StationCode <- as.character(testphabdata$StationCode)
   testphabdata$SampleDate <- as.character(testphabdata$SampleDate)
@@ -147,6 +147,12 @@ NNEformat <- function (data) {
   
   data <- data[which(data$SampleTypeName %in% c("Grab", "Integrate")),]
   
+  ###Convert to consistent units###
+  
+  if(!is.null(data$Unit)){
+    micro <- which(data$Unit == "ug/L")
+    data$Result[micro] <- data$Result[micro]/1000
+  }
   
   ###Fill in ND and DNQ##
   
@@ -156,14 +162,15 @@ NNEformat <- function (data) {
     ND <- intersect(which(data$ResQualCode=="ND"), MDL)
     data$Result[ND] <- data$MDL[ND]/2
     
-    RL <- which(data$RL>0)
+    RL <- which(data$RL>0 & data$MDL>0)
     DNQ <- intersect(which(data$ResQualCode=="DNQ"), RL)
-    data$Result[DNQ] <- (data$RL[DNQ] - data$MDL[DNQ])/2
+    data$Result[DNQ] <- ((data$RL[DNQ] - data$MDL[DNQ])/2 + data$MDL[DNQ])
   }
   
   data$Result[which(data$Result<0)] <- NA
   data$Result[which(data$Result=="")] <- NA
   
+  ###Aggregate###
   data$Result <- as.numeric(as.character(data$Result))
   data_aggregate <- aggregate(Result~StationCode+SampleDate+CollectionTime+
     AnalyteName, data=data, FUN=mean, na.rm=T)
@@ -189,7 +196,7 @@ NNEformat <- function (data) {
     require(reshape)
   }
   workingdata <- cast(workingdata, formula = CONCATENATE ~ AnalyteName, 
-                      value="Result", fun.aggregate=sum)
+                      value="Result", fun.aggregate=mean, na.rm=T)
   workingdata <- data.frame(workingdata)
   workingdata <- merge(workingdata, data[, c("CONCATENATE", "StationCode", "DWC_Month", ### merge with other useful data
                                                  "SampleDate", "CollectionTime", "Replicate")],
@@ -198,7 +205,7 @@ NNEformat <- function (data) {
   
 
   workingdata <- workingdata[!duplicated(workingdata[,"CONCATENATE"]),]###Remove duplicated rows
-
+  
   ###Sum for total nitrogen###
   workingdata <- nitrogen(workingdata)
   
@@ -230,7 +237,9 @@ NNEformat <- function (data) {
 #     require(Gtk2Extras)
 #   }
   
+  workingdata$Phosphorus.as.P[is.na(workingdata$Phosphorus.as.P)] <- 0
   workingdata <- workingdata[which(workingdata$nitrogen<100),]
+
   workingdata <- workingdata[which(workingdata$Phosphorus.as.P<15),]
 
 #   outliers <- outliercheck(workingdata)
@@ -242,7 +251,6 @@ NNEformat <- function (data) {
 #                                        which(!is.na(workingdata$OrganicP))), intersect(
 #                                        which(!is.na(workingdata$Phosphorus.as.P)),
 #                                        which(!is.na(workingdata$nitrogen)))),]
-
   return(workingdata)
 }
 
@@ -275,19 +283,26 @@ miscData <- function (calcdata) {
 nitrogen <- function (workingdata) {
   values <- c("Ammonia.as.N", "Nitrate...Nitrite.as.N", ###Names of nitrogen columns except total
               "Nitrate.as.N", "Nitrite.as.N", "Nitrogen..Total.Kjeldahl")
-  
   ###Remove observations with missing values###
   for(i in which(colnames(workingdata) %in% c(values, 
                                               "OrthoPhosphate.as.P", "Phosphorus.as.P"))){
     if(length(which(workingdata[, i]<0))>0){
       workingdata[which(workingdata[, i]<0), i] <- NA } ###Negative values replaced with NA
   }
-  
+
   ###Sum for total nitrogen###
-  workingdata$nitrogen <- apply(workingdata[,which(colnames(workingdata) %in% values)] , 1, sum) ###Sum nitrogen constituents 
-  workingdata$nitrogen[which(workingdata$Nitrogen..Total>0)] <- 
-    workingdata$Nitrogen..Total[which(workingdata$Nitrogen..Total>0)]  ###Replace summed total with reported total, if given
-  workingdata <- workingdata[!is.na(workingdata$nitrogen),] ###Throw out missing data
+
+  workingdata$nitrogen <- apply(workingdata[,grep(paste(values, collapse="|"),
+                                                  colnames(workingdata))] , 1, sum, na.rm=T) ###Sum nitrogen constituents 
+  colnames(workingdata)[grep("Nitrogen..Total.Kjeldahl", colnames(workingdata))] <- "k"
+  
+  if(!is.null(workingdata$Nitrogen..Total)){
+    nonzeroTN <- which(workingdata$"Nitrogen..Total">0)
+    workingdata$nitrogen[nonzeroTN] <- 
+      workingdata$"Nitrogen..Total"[nonzeroTN]  ###Replace summed total with reported total, if given
+    workingdata <- workingdata[!is.na(workingdata$nitrogen),] ###Throw out missing data
+  }
+  colnames(workingdata)[grep("k", colnames(workingdata))] <- "Nitrogen..Total.Kjeldahl"
   
   return(workingdata)
 }

@@ -1,13 +1,13 @@
-###Calculate all models from NNE data###
-NNEdata <- read.csv("C:\\Documents and Settings\\gisuser\\Desktop\\NNEdata.csv")
-workingNNEdata <- NNEdata[which(apply(is.na(NNEdata[, c(17:19, 21)]), 1, sum)==0),]
-workingNNEdata$WaterDepth[workingNNEdata$Project=="SMC"] <- 
-  workingNNEdata$WaterDepth[workingNNEdata$Project=="SMC"]/100
-workingNNEdata <- miscData(workingNNEdata)
-NNEdata_predictions <- merge(Qual2k(workingNNEdata), Dodds(workingNNEdata))
-
-write.csv(NNEdata_predictions, 
-          file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
+# ###Calculate all models from NNE data###
+# NNEdata <- read.csv("C:\\Documents and Settings\\gisuser\\Desktop\\NNEdata.csv")
+# workingNNEdata <- NNEdata[which(apply(is.na(NNEdata[, c(17:19, 21)]), 1, sum)==0),]
+# workingNNEdata$WaterDepth[workingNNEdata$Project=="SMC"] <- 
+#   workingNNEdata$WaterDepth[workingNNEdata$Project=="SMC"]/100
+# workingNNEdata <- miscData(workingNNEdata)
+# NNEdata_predictions <- merge(Qual2k(workingNNEdata), Dodds(workingNNEdata))
+# 
+# write.csv(NNEdata_predictions, 
+#           file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
 
 ###SWAMP PHAB formatting###
 
@@ -32,8 +32,8 @@ SWAMPphab <- merge(merge(SWAMPcanopy, SWAMPtemp), SWAMPturbid)
 SWAMPchem <- read.csv("C:\\Documents and Settings\\gisuser\\Desktop\\SWAMPchem.csv")
 
 ###change SWAMPformat so that it outputs SWAMPchem2 global variable before merging###
-SWAMPdata <- SWAMPformat(SWAMPchem, SWAMPphab)
-
+SWAMPdata2 <- SWAMPformat(SWAMPchem, SWAMPphab)
+SWAMPchem2 <- global1
 fullSWAMPdata <- data.frame(merge(SWAMPchem2, SWAMPphab, all=T))
 
 
@@ -41,7 +41,10 @@ fullSWAMPdata <- data.frame(merge(SWAMPchem2, SWAMPphab, all=T))
 SMCchem <- read.csv("P:\\PartTimers\\MarkEngeln\\from Betty\\dataForNNEmodels\\SMC\\tblExtract_SMC_ChemistryResults.csv")
 SMCphab <- read.csv("C:\\Documents and Settings\\gisuser\\Desktop\\SMCphab.csv")
 ###change SWAMPformat so that it outputs SMCchem2 global variable before merging###
+SMCchem <- SMCchem[!(1:length(SMCchem[[1]]) %in% 
+  grep("Spiked", SMCchem$LabResultComments)),]
 SMCdata <- SWAMPformat(SMCchem, SMCphab)
+SMCchem2 <- global1
 SMCchem2$StationCode <- as.character(SMCchem2$StationCode)
 SMCchem2$SampleDate <- as.character(SMCchem2$SampleDate)
 SMCphab$StationCode <- as.character(SMCphab$StationCode)
@@ -78,8 +81,8 @@ NNEdata_predictions <- merge(Qual2k(workingNNEdata), Dodds(workingNNEdata))
 write.csv(NNEdata_predictions, 
           file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
 
-validation <- read.delim("clipboard", header=T)
-
+# validation <- read.delim("clipboard", header=T)
+# 
 fullvalidation <- merge(NNEdata_predictions, validation, all=F)
 
 plot(data=fullvalidation, spreadsheet_Standard.QUAL2K ~standardQual2k_BenthicChlora)
@@ -89,3 +92,17 @@ plot(data=fullvalidation, RevisedQual2k_BenthicChlora ~spreadsheet_Revised.QUAL2
 plot(data=fullvalidation, MaxAlgalDen_Dodds02 ~spreadsheet_Dodds..02..06..max.Chl.a)
 
 plot(data=fullvalidation, benthic_qual2kaccrual ~spreadsheet_Revised.QUAL2K.with.accrual.adj)
+
+
+compare<- Vectorize(function(a,b,x){abs(a-b)>x}, vectorize.args=c("a", "b"))
+
+problems <- which(compare(fullvalidation$standardQual2k_BenthicChlora, 
+              fullvalidation$spreadsheet_Standard.QUAL2K, 5))
+
+sc <- fullvalidation$StationCode[problems]
+
+
+fullvalidation$SampleDate[which(fullvalidation$StationCode %in% sc)]
+
+
+
