@@ -1,4 +1,4 @@
-#observed <- read.delim("clipboard", header=T, stringsAsFactors=F)
+observed <- read.csv("P:\\PartTimers\\MarkEngeln\\from Betty\\dataForNNEmodels\\observedChla.csv")
 alldata <- merge(NNEdata_predictions, observed, all=F, all.x=T, all.y=F)
 alldata <- alldata[which(!is.na(alldata$observedChla.mg.m2.)),]
 
@@ -28,16 +28,15 @@ Plimited <- alldata[which(alldata$ratio_in_M>=20),]
 
 
 
-
-###Create model###
-model <- lm(log10(observedChla.mg.m2.) ~ log10(nitrogen) +  log10(OrthoPhosphate.as.P) +
-   WaterTemperature +  WaterDepth + CanopyClosure +
-    ratio_in_M + Latitude
-  , data=normal)
-
-summary(model)
-library(MASS)
-stepAIC(model)
+# ###Create model###
+# model <- lm(log10(observedChla.mg.m2.) ~ log10(nitrogen) +  log10(OrthoPhosphate.as.P) +
+#    WaterTemperature +  WaterDepth + CanopyClosure +
+#     ratio_in_M + Latitude
+#   , data=normal)
+# 
+# summary(model)
+# library(MASS)
+# stepAIC(model)
 
 ####DELTA: A vector of length two. The first component is the raw cross-validation 
 #estimate of prediction error. The second component is the adjusted cross-validation 
@@ -46,46 +45,49 @@ stepAIC(model)
 
 ###see ?cv.glm
 
-library(boot)
-###Plimited model###
-Plimited_model <- glm(formula = log10(observedChla.mg.m2.) ~ log10(nitrogen) + 
-  WaterTemperature + log10(Phosphorus.as.P) + Latitude, family = gaussian, 
-                      data = Plimited)
-cv.glm(Plimited, Plimited_model, K=3)$delta
+# library(boot)
+# ###Plimited model###
+# Plimited_model <- glm(formula = log10(observedChla.mg.m2.) ~ log10(nitrogen) + 
+#   WaterTemperature + log10(Phosphorus.as.P) + Latitude, family = gaussian, 
+#                       data = Plimited)
+# cv.glm(Plimited, Plimited_model, K=3)$delta
+# 
+# ###Nlimited model
+# Nlimited_model <- glm(formula = log10(observedChla.mg.m2.) ~ log10(nitrogen) + 
+#   WaterTemperature + Latitude, family = gaussian, data = Nlimited)
+# cv.glm(Nlimited, Nlimited_model, K=3)$delta
+# 
+# ###normal model##
+# normal_model <-glm(formula = log10(observedChla.mg.m2.) ~ log10(OrthoPhosphate.as.P) + 
+#   WaterTemperature + CanopyClosure + Latitude, family = gaussian, 
+#                   data = normal)
+# cv.glm(normal, normal_model, K=3)$delta
+# 
+# 
+# ###random forest##
+# alldata2 <- alldata[complete.cases(alldata2[,c(17:19, 21:22, 49:53)]),]
+# library(caret)
+# registerDoSEQ()
+# ctrl <- rfeControl(functions = rfFuncs, method = "cv",verbose = FALSE, returnResamp = "all")
+# 
+# set.seed(10)
+# caretResults <- rfe(alldata2[,c(17:19, 21:22, 49:53)]), alldata2[,54], sizes=c(2, 4, 6), rfeControl=ctrl)
+# caretResults$fit
+# rownames(caretResults$fit$importance)
+# caretResults$fit$importance
+# rfNNE <- caretResults
+# #save(rfNNE, file="Data/rfNNE.RData")
 
-###Nlimited model
-Nlimited_model <- glm(formula = log10(observedChla.mg.m2.) ~ log10(nitrogen) + 
-  WaterTemperature + Latitude, family = gaussian, data = Nlimited)
-cv.glm(Nlimited, Nlimited_model, K=3)$delta
+load("Data/rfNNE.RData")
+plot(10^predict(rfNNE, alldata2[,c(17:19, 21:22, 49:53)]), 10^alldata2[,54])
 
-###normal model##
-normal_model <-glm(formula = log10(observedChla.mg.m2.) ~ log10(OrthoPhosphate.as.P) + 
-  WaterTemperature + CanopyClosure + Latitude, family = gaussian, 
-                  data = normal)
-cv.glm(normal, normal_model, K=3)$delta
-
-
-###random forest##
-alldata2 <- alldata[complete.cases(alldata[,c(17:19, 21:22, 49:52)]),]
-library(caret)
-registerDoSEQ()
-ctrl <- rfeControl(functions = rfFuncs, method = "cv",verbose = FALSE, returnResamp = "all")
-
-set.seed(10)
-caretResults <- rfe(alldata2[,c(17:19, 21:22, 49:50, 52)], alldata2[,53], sizes=c(2, 4, 6), rfeControl=ctrl)
-caretResults$fit
-rownames(caretResults$fit$importance)
-caretResults$fit$importance
-rfNNE <- caretResults
-#save(rfNNE, file="Data/rfNNE.RData")
-
-
-plot(10^predict(caretResults$fit, alldata2[,c(17:19, 21:22, 49:52)]), 10^alldata2[,53])
-
-###linear model###
-registerDoSEQ()
-ctrl2 <- rfeControl(functions = lmFuncs, method = "cv",verbose = FALSE, returnResamp = "all")
-
-set.seed(10)
-caretLMResults <- rfe(normal[,c(17:19, 21:22, 49:50, 52)], normal[,53], sizes=c(2, 4, 6), rfeControl=ctrl2)
-summary(caretLMResults$fit)
+# ###linear model###
+# registerDoSEQ()
+# ctrl2 <- rfeControl(functions = lmFuncs, method = "cv",verbose = FALSE, returnResamp = "all")
+# 
+# set.seed(10)
+# caretLMResults <- rfe(normal[,c(17:19, 21:22, 49:50, 52)], normal[,53], sizes=c(2, 4, 6), rfeControl=ctrl2)
+# summary(caretLMResults$fit)
+# 
+# ####
+# plot(alldata[,33], 10^alldata2[,53])

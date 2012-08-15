@@ -81,15 +81,15 @@ sketch <- function () {
   NNEdata
 }
 NNEdata <- sketch()
-write.csv(NNEdata, file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEdata.csv")
+#write.csv(NNEdata, file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEdata.csv")
 
 ###Usable data###
 workingNNEdata <- NNEdata[which(apply(is.na(NNEdata[, c(17:19, 21)]), 1, sum)==0),]
 workingNNEdata <- miscData(workingNNEdata)
 NNEdata_predictions <- merge(Qual2k(workingNNEdata), Dodds(workingNNEdata))
 
- write.csv(NNEdata_predictions, 
-           file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
+#write.csv(NNEdata_predictions, 
+         # file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
 
 # validation <- read.delim("clipboard", header=T)
 # 
@@ -102,7 +102,7 @@ NNEdata_predictions <- merge(Qual2k(workingNNEdata), Dodds(workingNNEdata))
 # plot(data=fullvalidation, MaxAlgalDen_Dodds02 ~spreadsheet_Dodds..02..06..max.Chl.a)
 # 
 # plot(data=fullvalidation, benthic_qual2kaccrual ~spreadsheet_Revised.QUAL2K.with.accrual.adj)
-# 
+
 # 
 # compare<- Vectorize(function(a,b,x){abs(a-b)>x}, vectorize.args=c("a", "b"))
 # 

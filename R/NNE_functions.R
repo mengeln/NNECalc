@@ -480,6 +480,7 @@ rfNNEmodel <- function(data){
     install.packages("caret")
     library(caret)
   }
+  library(randomForest)
   load("Data/rfNNE.RData")
   data$lognitrogen <- log10(data$nitrogen)
   data$logOrthoPhosphate <- log10(data$OrthoPhosphate)
