@@ -59,8 +59,8 @@ Qual2k <- function (calcdata) {
 Dodds <- function(calcdata){
   Dodds97 <- MaxAlgaeDensity_Dodds97(calcdata)
   Dodds02 <- MaxAlgaeDensity_Dodds02(calcdata)
-  
-  results <- cbind(calcdata, Dodds97, Dodds02)
+  rf <- rfNNEmodel(calcdata)
+  results <- cbind(calcdata, Dodds97, Dodds02, rf)
   return(results)
 }
 
@@ -169,7 +169,8 @@ NNEformat <- function (data) {
   
   data$Result[which(data$Result<0)] <- NA
   data$Result[which(data$Result=="")] <- NA
-  
+
+  data[data$AnalyteName=="Orthophosphate as P"] <- "OrthoPhosphate as P"
   ###Aggregate###
   data$Result <- as.numeric(as.character(data$Result))
   data_aggregate <- aggregate(Result~StationCode+SampleDate+CollectionTime+
@@ -215,7 +216,7 @@ NNEformat <- function (data) {
   Pcheck <- intersect(Pcheck1, Pcheck2) ###Problem rows
   ###Replace total phosphorus with OrthoPhosphate on problem rows
   workingdata$Phosphorus.as.P[Pcheck] <- workingdata$OrthoPhosphate.as.P[Pcheck]
-  
+
   ###Fill in Total P where Ortho is given but total P is not###
   pfill <- which(workingdata$Phosphorus.as.P==0 & workingdata$OrthoPhosphate.as.P>0)
   workingdata$Phosphorus.as.P[pfill] <- workingdata$OrthoPhosphate.as.P[pfill]
@@ -473,6 +474,21 @@ MaxAlgaeDensity_Dodds02 <- function(data){
   
 }
 
+###rfNNE model; in progress###
+rfNNEmodel <- function(data){
+  if(require(caret)==F){
+    install.packages("caret")
+    library(caret)
+  }
+  load("Data/rfNNE.RData")
+  data$lognitrogen <- log10(data$nitrogen)
+  data$logOrthoPhosphate <- log10(data$OrthoPhosphate)
+  data$ratio_in_M <- ((data$nitrogen/1000)/14.0067)/
+    ((data$Phosphorus.as.P/1000)/30.973761)
+
+  rfdata <- na.roughfix(data[, rownames(rfNNE$fit$importance)])
+  10^predict(rfNNE, rfdata)
+}
 
 ####target calculator; in progress###
 Qual2k_targets <- function (data, target) {
