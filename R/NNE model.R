@@ -81,6 +81,7 @@ Plimited <- alldata[which(alldata$ratio_in_M>=20),]
 load("Data/rfNNE.RData")
 plot(10^predict(rfNNE, alldata2[,c(17:19, 21:22, 49:53)]), 10^alldata2[,54])
 
+TNTP_model<- glm(data=alldata, logChl ~ lognitrogen + logPhosphorus.as.P, family="gaussian")
 # ###linear model###
 # registerDoSEQ()
 # ctrl2 <- rfeControl(functions = lmFuncs, method = "cv",verbose = FALSE, returnResamp = "all")

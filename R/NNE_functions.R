@@ -88,7 +88,7 @@ colRename <- function(data){
   colnames(data)[grep("Month", colnames(data))] <- "DWC_Month"
   
   if(!is.integer(data$DWC_Month)){
-    month <- c("January", "February", "March", "April", "May", "June", "July", "August", "Sempter",
+    month <- c("January", "February", "March", "April", "May", "June", "July", "August", "September",
                "October", "November", "December")
     data$DWC_Month <- sapply(data$DWC_Month, function(d){which(month==as.character(d))
     })
@@ -145,7 +145,7 @@ outliercheck <- function(data){
 NNEformat <- function (data) {
   ###Clean up SWAMP data table###
   
-  data <- data[which(data$SampleTypeName %in% c("Grab", "Integrate")),]
+  data <- data[which(data$SampleTypeName %in% c("Grab", "Integrated")),]
   
   ###Convert to consistent units###
   
