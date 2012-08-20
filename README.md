@@ -14,7 +14,7 @@ More background information on this project can be found [here](http://www.sccwr
 * Finishing validating new models (using both the random forest method, and the traditional regression model)
 * Preparing to deploy as R package, which will serve as backend to web app
 
-###File Descriptions
+### File Descriptions
 
 
 * graph_draft.R
