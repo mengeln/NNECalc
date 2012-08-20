@@ -19,12 +19,12 @@ alldata$logPhosphorus.as.P <- log10(alldata$Phosphorus.as.P)
 alldata$logOrthoPhosphate <- log10(alldata$OrthoPhosphate)
 alldata$logChl <- log10(alldata$observedChla.mg.m2.)
 
-#validation <- alldata[1:100,]
-
-Nlimited <- alldata[which(alldata$ratio_in_M<=10),]
-normal <- alldata[which(alldata$ratio_in_M>10 &
-  alldata$ratio_in_M<20),]
-Plimited <- alldata[which(alldata$ratio_in_M>=20),]
+# #validation <- alldata[1:100,]
+# 
+# Nlimited <- alldata[which(alldata$ratio_in_M<=10),]
+# normal <- alldata[which(alldata$ratio_in_M>10 &
+#   alldata$ratio_in_M<20),]
+# Plimited <- alldata[which(alldata$ratio_in_M>=20),]
 
 
 summary(lm(observedChla.mg.m2. ~ standardQual2k_BenthicChlora, data=alldata))
@@ -75,21 +75,23 @@ plot(observedChla.mg.m2. ~ MeanAlgalDen_Dodds02, data=alldata)
 # 
 # 
 # ###random forest##
-# alldata2 <- alldata[complete.cases(alldata2[,c(17:19, 21:22, 49:53)]),]
-# library(caret)
-# registerDoSEQ()
-# ctrl <- rfeControl(functions = rfFuncs, method = "cv",verbose = FALSE, returnResamp = "all")
-# 
-# set.seed(10)
-# caretResults <- rfe(alldata2[,c(17:19, 21:22, 49:53)]), alldata2[,54], sizes=c(2, 4, 6), rfeControl=ctrl)
-# caretResults$fit
-# rownames(caretResults$fit$importance)
-# caretResults$fit$importance
-# rfNNE <- caretResults
+#alldata2 <- alldata[complete.cases(alldata[,c(17:19, 21:22, 49:53)]),]
+library(caret)
+registerDoSEQ()
+ctrl <- rfeControl(functions = rfFuncs, method = "cv",verbose = FALSE, returnResamp = "all")
+
+set.seed(10)
+caretResults <- rfe(trainData[,c(17:19, 21:22, 49:53)], trainData[,54], sizes=c(2, 4, 6), rfeControl=ctrl)
+caretResults$fit
+rownames(caretResults$fit$importance)
+caretResults$fit$importance
+rfNNE <- caretResults
 # #save(rfNNE, file="Data/rfNNE.RData")
 
 load("Data/rfNNE.RData")
-plot(10^predict(rfNNE, alldata2[,c(17:19, 21:22, 49:53)]), 10^alldata2[,54])
+plot(log10(holdback$observedChla.mg.m2.) ~ predict(caretResults, holdback))
+summary(lm(log10(holdback$observedChla.mg.m2.) ~ predict(caretResults, holdback)))
+
 
 sample <- sample(1:length(alldata[[1]]), size=(round(length(alldata[,1])*0.7)))
 trainData <- alldata[sample,]

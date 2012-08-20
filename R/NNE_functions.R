@@ -493,13 +493,9 @@ rfNNEmodel <- function(data){
   variables <- c("Latitude", "CanopyClosure",   "WaterDepth", "WaterTemperature",
                  "Turbidity", "ratio_in_M", "lognitrogen", "logOrthoPhosphate")
   imputedata <- impSeqRob(data[,variables])$x
-  str(imputedata)
-
   for(i in 1:8){
-    print(i)
     data[, variables[i]] <- imputedata[,i]
   }
-  imputedata <<- data
   
   10^predict(rfNNE, data)
 }
