@@ -26,3 +26,10 @@ View(results)
 ###Target calculator testing###
 testdata <- Qual2k(SWAMPformat(data, validate))
 View(Qual2k_targets(testdata, 100))
+
+library(rrcovNA)
+imputed <- impSeqRob(imputedata[,c("Latitude", "CanopyClosure", 	"WaterDepth",
+                                "WaterTemperature",	"Turbidity.NTU.")])
+
+data[,c("Latitude", "CanopyClosure",
+        "WaterDepth", "WaterTemperature",	"Turbidity.NTU.")] <- imputed

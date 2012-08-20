@@ -27,7 +27,17 @@ normal <- alldata[which(alldata$ratio_in_M>10 &
 Plimited <- alldata[which(alldata$ratio_in_M>=20),]
 
 
+summary(lm(observedChla.mg.m2. ~ standardQual2k_BenthicChlora, data=alldata))
+plot(observedChla.mg.m2. ~ standardQual2k_BenthicChlora, data=alldata)
 
+summary(lm(observedChla.mg.m2. ~ revisedQual2k_MaxAlgaeDensity, data=alldata))
+plot(observedChla.mg.m2. ~ revisedQual2k_MaxAlgaeDensity, data=alldata)
+
+summary(lm(observedChla.mg.m2. ~ MeanAlgalDen_Dodds97, data=alldata))
+plot(observedChla.mg.m2. ~ MeanAlgalDen_Dodds97, data=alldata)
+
+summary(lm(observedChla.mg.m2. ~ MeanAlgalDen_Dodds02, data=alldata))
+plot(observedChla.mg.m2. ~ MeanAlgalDen_Dodds02, data=alldata)
 # ###Create model###
 # model <- lm(log10(observedChla.mg.m2.) ~ log10(nitrogen) +  log10(OrthoPhosphate.as.P) +
 #    WaterTemperature +  WaterDepth + CanopyClosure +
@@ -81,7 +91,17 @@ Plimited <- alldata[which(alldata$ratio_in_M>=20),]
 load("Data/rfNNE.RData")
 plot(10^predict(rfNNE, alldata2[,c(17:19, 21:22, 49:53)]), 10^alldata2[,54])
 
-TNTP_model<- glm(data=alldata, logChl ~ lognitrogen + logPhosphorus.as.P, family="gaussian")
+sample <- sample(1:length(alldata[[1]]), size=(round(length(alldata[,1])*0.7)))
+trainData <- alldata[sample,]
+holdback <- alldata[!(1:length(alldata[[1]]) %in% sample),]
+
+
+TNTP_model<- lm(data=trainData, logChl ~ lognitrogen + logPhosphorus.as.P)
+summary(TNTP_model)
+
+summary(lm(holdback$logChl ~ predict(TNTP_model, holdback)))
+plot(holdback$logChl ~ predict(TNTP_model, holdback))
+     
 # ###linear model###
 # registerDoSEQ()
 # ctrl2 <- rfeControl(functions = lmFuncs, method = "cv",verbose = FALSE, returnResamp = "all")

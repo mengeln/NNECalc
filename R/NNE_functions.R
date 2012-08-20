@@ -476,7 +476,6 @@ MaxAlgaeDensity_Dodds02 <- function(data){
 
 ###rfNNE model; in progress###
 rfNNEmodel <- function(data){
-  str(data)
   if(require(caret)==F){
     install.packages("caret")
     library(caret)
@@ -489,9 +488,20 @@ rfNNEmodel <- function(data){
     ((data$Phosphorus.as.P/1000)/30.973761)
 
   #rfdata <- na.roughfix(data[, rownames(rfNNE$fit$importance)])
-  rfdata <- rfImpute(data[, which(colnames(data) != "chla_mg_per_m2")],
-                     data[, "chla_mg_per_m2"])
-  10^predict(rfNNE, rfdata)
+
+  library(rrcovNA)
+  variables <- c("Latitude", "CanopyClosure",   "WaterDepth", "WaterTemperature",
+                 "Turbidity", "ratio_in_M", "lognitrogen", "logOrthoPhosphate")
+  imputedata <- impSeqRob(data[,variables])$x
+  str(imputedata)
+
+  for(i in 1:8){
+    print(i)
+    data[, variables[i]] <- imputedata[,i]
+  }
+  imputedata <<- data
+  
+  10^predict(rfNNE, data)
 }
 
 ####target calculator; in progress###
