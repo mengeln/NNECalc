@@ -476,6 +476,7 @@ MaxAlgaeDensity_Dodds02 <- function(data){
 
 ###rfNNE model; in progress###
 rfNNEmodel <- function(data){
+  str(data)
   if(require(caret)==F){
     install.packages("caret")
     library(caret)
@@ -487,7 +488,9 @@ rfNNEmodel <- function(data){
   data$ratio_in_M <- ((data$nitrogen/1000)/14.0067)/
     ((data$Phosphorus.as.P/1000)/30.973761)
 
-  rfdata <- na.roughfix(data[, rownames(rfNNE$fit$importance)])
+  #rfdata <- na.roughfix(data[, rownames(rfNNE$fit$importance)])
+  rfdata <- rfImpute(data[, which(colnames(data) != "chla_mg_per_m2")],
+                     data[, "chla_mg_per_m2"])
   10^predict(rfNNE, rfdata)
 }
 
