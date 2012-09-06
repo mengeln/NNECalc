@@ -80,16 +80,17 @@ sketch <- function () {
   NNEdata <- rbind.fill(fullSWAMPdata, fullSMCdata, p50)
   NNEdata
 }
+source("R/NNE_functions.R")
 NNEdata <- sketch()
-#write.csv(NNEdata, file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEdata.csv")
+write.csv(NNEdata, file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEdata.csv")
 
 ###Usable data###
 workingNNEdata <- NNEdata[which(apply(is.na(NNEdata[, c(17:19, 21)]), 1, sum)==0),]
 workingNNEdata <- miscData(workingNNEdata)
 NNEdata_predictions <- merge(Qual2k(workingNNEdata), Dodds(workingNNEdata))
 
-#write.csv(NNEdata_predictions, 
-         # file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
+write.csv(NNEdata_predictions, 
+          file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
 
 # validation <- read.delim("clipboard", header=T)
 # 
