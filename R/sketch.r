@@ -30,7 +30,7 @@ sketch <- function () {
   
   SWAMPphab <- merge(merge(SWAMPcanopy, SWAMPtemp), SWAMPturbid)
   
-  SWAMPchem <- read.csv("C:\\Documents and Settings\\gisuser\\Desktop\\SWAMPchem.csv")
+  SWAMPchem <- read.csv("P:\\PartTimers\\MarkEngeln\\SWAMPchem.csv")
   
   ###change SWAMPformat so that it outputs SWAMPchem2 global variable before merging###
   SWAMPdata2 <- SWAMPformat(SWAMPchem, SWAMPphab)
@@ -40,7 +40,7 @@ sketch <- function () {
   
   ###SMC###
   SMCchem <- read.csv("P:\\PartTimers\\MarkEngeln\\from Betty\\dataForNNEmodels\\SMC\\tblExtract_SMC_ChemistryResults.csv")
-  SMCphab <- read.csv("C:\\Documents and Settings\\gisuser\\Desktop\\SMCphab.csv")
+  SMCphab <- read.csv("P:\\PartTimers\\MarkEngeln\\SMCphab.csv")
   ###change SWAMPformat so that it outputs SMCchem2 global variable before merging###
   
   SMCchem <- SMCchem[!(1:length(SMCchem[[1]]) %in% 
@@ -82,15 +82,15 @@ sketch <- function () {
 }
 source("R/NNE_functions.R")
 NNEdata <- sketch()
-write.csv(NNEdata, file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEdata.csv")
+#write.csv(NNEdata, file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEdata.csv")
 
 ###Usable data###
 workingNNEdata <- NNEdata[which(apply(is.na(NNEdata[, c(17:19, 21)]), 1, sum)==0),]
 workingNNEdata <- miscData(workingNNEdata)
 NNEdata_predictions <- merge(Qual2k(workingNNEdata), Dodds(workingNNEdata))
 
-write.csv(NNEdata_predictions, 
-          file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
+#write.csv(NNEdata_predictions, 
+         # file="C:\\Documents and Settings\\gisuser\\Desktop\\NNEcalc_predictions.csv")
 
 # validation <- read.delim("clipboard", header=T)
 # 
